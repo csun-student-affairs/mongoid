@@ -11,39 +11,13 @@ module Mongoid #:nodoc:
   # can be chained in order to create a readable criterion to be executed
   # against the database.
   class Criteria
+    include Contextual
     include Enumerable
     include Origin::Queryable
     include Criterion::Inspection
     include Criterion::Scoping
 
     attr_accessor :embedded, :klass
-
-    delegate \
-      :add_to_set,
-      :aggregate,
-      :avg,
-      :blank?,
-      :count,
-      :size,
-      :length,
-      :delete,
-      :delete_all,
-      :destroy,
-      :destroy_all,
-      :distinct,
-      :empty?,
-      :execute,
-      :first,
-      :group,
-      :last,
-      :max,
-      :min,
-      :one,
-      :pull,
-      :shift,
-      :sum,
-      :update,
-      :update_all, to: :context
 
     # Returns true if the supplied +Enumerable+ or +Criteria+ is equal to the results
     # of this +Criteria+ or the criteria itself.
@@ -126,19 +100,6 @@ module Mongoid #:nodoc:
       options[:cache] == true
     end
 
-    # Return or create the context in which this criteria should be executed.
-    #
-    # This will return an Enumerable context if the class is embedded,
-    # otherwise it will return a Mongo context for root classes.
-    #
-    # @example Get the appropriate context.
-    #   criteria.context
-    #
-    # @return [ Mongo, Enumerable ] The appropriate context.
-    def context
-      @context ||= Contexts.context_for(self, embedded)
-    end
-
     # Create a document in the database given the selector and return it.
     # Complex criteria, such as $in and $or operations will get ignored.
     #
@@ -199,19 +160,6 @@ module Mongoid #:nodoc:
       @documents = docs
     end
 
-    # Iterate over each +Document+ in the results. This can take an optional
-    # block to pass to each argument in the results.
-    #
-    # @example Iterate over the criteria results.
-    #   criteria.each { |doc| p doc }
-    #
-    # @return [ Criteria ] The criteria itself.
-    #
-    # @since 1.0.0
-    def each(&block)
-      tap { context.iterate(&block) }
-    end
-
     # Execute the criteria or raise an error if no documents found.
     #
     # @example Execute or raise
@@ -266,7 +214,7 @@ module Mongoid #:nodoc:
     #
     # @since 2.3.0
     def extract_id
-      selector["_id"]
+      selector.extract_id
     end
 
     # Adds a criterion to the +Criteria+ that specifies additional options
@@ -574,20 +522,6 @@ module Mongoid #:nodoc:
           end
         end
       )
-    end
-
-    # Get the raw driver collection from the criteria.
-    #
-    # @api private
-    #
-    # @example Get the raw driver collection.
-    #   criteria.driver
-    #
-    # @return [ Mongo::Collection ] The driver collection.
-    #
-    # @since 2.2.0
-    def driver
-      collection.driver
     end
 
     # Adds a criterion to the +Criteria+ that specifies an id that must be matched.
